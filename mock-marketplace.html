@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Isvoro 二手市场仿真测试环境 (Mock Marketplace Sandbox)</title>
+  <style>
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* 1. Isvoro 原生 Tailwind CSS HSL Token 体系与暗黑模式定义       */
+    /* ═══════════════════════════════════════════════════════════════ */
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 222.2 47.4% 11.2%;
+      --card: 0 0% 100%;
+      --card-foreground: 222.2 47.4% 11.2%;
+      --border: 214.3 31.8% 91.4%;
+      --border-subtle: 214.3 31.8% 94%;
+      --primary: 221 83% 53%;
+      --primary-foreground: 210 40% 98%;
+      --muted: 210 40% 96.1%;
+      --muted-foreground: 215.4 16.3% 44%;
+      --success: 142 71% 45%;
+      --destructive: 0 84.2% 48%;
+      --warning: 38 92% 50%;
+      --radius: 0.625rem;
+    }
+
+    .dark, html.dark {
+      --background: 224 71% 4%;
+      --foreground: 210 40% 98%;
+      --card: 224 71% 6%;
+      --card-foreground: 210 40% 98%;
+      --border: 217.2 32.6% 17.5%;
+      --border-subtle: 217.2 32.6% 14%;
+      --primary: 217 91% 60%;
+      --primary-foreground: 222.2 47.4% 11.2%;
+      --muted: 217.2 32.6% 17.5%;
+      --muted-foreground: 215 20.2% 65.1%;
+      --success: 142 65% 45%;
+      --destructive: 0 62.8% 50%;
+      --warning: 38 92% 55%;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* 2. 基础重置与原子类样式 (Tailwind Subset)                      */
+    /* ═══════════════════════════════════════════════════════════════ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: hsl(var(--background));
+      color: hsl(var(--foreground));
+      line-height: 1.5;
+      min-height: 100vh;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    /* 模拟测试导航顶栏 */
+    .sandbox-top-bar {
+      background: hsl(var(--card));
+      border-bottom: 1px solid hsl(var(--border));
+      padding: 0.65rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      font-size: 0.8125rem;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+    .sandbox-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      color: hsl(var(--primary));
+    }
+    .sandbox-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .sandbox-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 0.375rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid hsl(var(--border));
+      background: hsl(var(--muted));
+      color: hsl(var(--foreground));
+      transition: all 0.15s ease;
+    }
+    .sandbox-btn:hover {
+      background: hsl(var(--border));
+    }
+    .sandbox-btn-primary {
+      background: hsl(var(--primary));
+      border-color: hsl(var(--primary));
+      color: hsl(var(--primary-foreground));
+    }
+    .sandbox-btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    /* 布局容器 */
+    .max-w-7xl { max-width: 80rem; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+    .space-y-6 > * + * { margin-top: 1.5rem; }
+    .space-y-4 > * + * { margin-top: 1rem; }
+    .space-y-1 > * + * { margin-top: 0.25rem; }
+
+    /* 文本与对齐 */
+    .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+    .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+    .text-xs { font-size: 0.75rem; line-height: 1rem; }
+    .font-bold { font-weight: 700; }
+    .font-semibold { font-weight: 600; }
+    .font-medium { font-weight: 500; }
+    .leading-tight { line-height: 1.25; }
+    .leading-relaxed { line-height: 1.625; }
+    .tracking-tight { letter-spacing: -0.025em; }
+
+    /* 颜色映射 */
+    .text-foreground { color: hsl(var(--foreground)); }
+    .text-muted-foreground { color: hsl(var(--muted-foreground)); }
+    .text-primary { color: hsl(var(--primary)); }
+    .text-primary-foreground { color: hsl(var(--primary-foreground)); }
+    .text-success { color: hsl(var(--success)); }
+    .text-destructive { color: hsl(var(--destructive)); }
+    .text-warning { color: hsl(var(--warning)); }
+
+    .bg-background { background-color: hsl(var(--background)); }
+    .bg-card { background-color: hsl(var(--card)); }
+    .bg-muted { background-color: hsl(var(--muted)); }
+    .bg-primary { background-color: hsl(var(--primary)); }
+    .bg-primary\/10 { background-color: hsla(var(--primary), 0.1); }
+    .bg-success\/15 { background-color: hsla(var(--success), 0.15); }
+    .bg-destructive\/10 { background-color: hsla(var(--destructive), 0.1); }
+    .bg-warning\/10 { background-color: hsla(var(--warning), 0.1); }
+
+    .border { border-width: 1px; border-style: solid; border-color: hsl(var(--border)); }
+    .border-b { border-bottom-width: 1px; border-bottom-style: solid; border-color: hsl(var(--border)); }
+    .border-t { border-top-width: 1px; border-top-style: solid; border-color: hsl(var(--border)); }
+    .border-border { border-color: hsl(var(--border)); }
+    .border-warning\/40 { border-color: hsla(var(--warning), 0.4); }
+
+    /* Flex / Grid */
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .flex-1 { flex: 1 1 0%; }
+    .flex-wrap { flex-wrap: wrap; }
+    .items-center { align-items: center; }
+    .items-start { align-items: flex-start; }
+    .items-end { align-items: flex-end; }
+    .justify-between { justify-content: space-between; }
+    .justify-center { justify-content: center; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-3 { gap: 0.75rem; }
+    .gap-4 { gap: 1rem; }
+    .gap-x-4 { column-gap: 1rem; }
+    .gap-y-2 { row-gap: 0.5rem; }
+
+    .grid { display: grid; }
+    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    @media (min-width: 768px) {
+      .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (min-width: 1024px) {
+      .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .lg\:flex-row { flex-direction: row; }
+      .lg\:items-center { align-items: center; }
+      .lg\:justify-between { justify-content: space-between; }
+    }
+    .grid-cols-\[auto_1fr\] { grid-template-columns: auto 1fr; }
+
+    /* 间距与圆角 */
+    .p-1 { padding: 0.25rem; }
+    .p-4 { padding: 1rem; }
+    .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+    .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+    .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+    .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .pb-3 { padding-bottom: 0.75rem; }
+    .pb-4 { padding-bottom: 1rem; }
+    .pt-4 { padding-top: 1rem; }
+    .mt-1 { margin-top: 0.25rem; }
+    .mt-auto { margin-top: auto; }
+    .mr-1 { margin-right: 0.25rem; }
+
+    .rounded { border-radius: 0.25rem; }
+    .rounded-md { border-radius: 0.375rem; }
+    .rounded-lg { border-radius: 0.5rem; }
+    .rounded-xl { border-radius: var(--radius); }
+    .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+
+    .h-9 { height: 2.25rem; }
+    .w-44 { width: 11rem; }
+    .w-64 { width: 16rem; }
+    .shrink-0 { flex-shrink: 0; }
+    .size-4 { width: 1rem; height: 1rem; }
+    .underline { text-decoration-line: underline; }
+    .decoration-dotted { text-decoration-style: dotted; }
+
+    /* 卡片专属微样式 */
+    .market-card {
+      padding: 1.25rem;
+      border: 1px solid hsl(var(--border));
+      background-color: hsl(var(--card));
+      color: hsl(var(--card-foreground));
+      border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .market-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+    .btn-buy {
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-buy:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- 仿真测试沙箱顶部调试控制栏                                      -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <header class="sandbox-top-bar">
+    <div class="sandbox-brand">
+      <span>🛡️ Isvoro Marketplace Simulator</span>
+      <span style="font-size:0.75rem;font-weight:normal;opacity:0.8;">(v1.0.0 测试基准沙箱)</span>
+    </div>
+    <div class="sandbox-actions">
+      <span id="script-status" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:hsla(var(--success),0.2);color:hsl(var(--success));font-weight:600;">
+        ● 插件就绪
+      </span>
+      <button class="sandbox-btn" id="btn-theme-toggle" onclick="toggleTheme()">
+        🌓 切换明暗主题
+      </button>
+      <button class="sandbox-btn" style="background:#047857;border-color:#059669;color:#fff;" onclick="runInBrowserTests()">
+        🧪 运行回归测试
+      </button>
+      <button class="sandbox-btn" onclick="location.reload()">
+        🔄 重新加载页面
+      </button>
+      <a class="sandbox-btn sandbox-btn-primary" href="/index.html" target="_blank">
+        ⚙️ 控制门户
+      </a>
+      <a class="sandbox-btn" href="/api/v1/marketplace" target="_blank">
+        📄 API JSON
+      </a>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- Isvoro 前端应用宿主 DOM 骨架                                  -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div id="app">
+    <main class="space-y-6 max-w-7xl mx-auto px-4 py-8">
+      
+      <!-- 页面顶部 Header -->
+      <div class="flex items-center justify-between pb-4 border-b border-border">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-foreground">二手市场</h1>
+          <p class="text-sm text-muted-foreground mt-1">云服务实例自由转让与流转平台</p>
+        </div>
+      </div>
+
+      <!-- Tabs 标签列表 (div[role="tablist"]) -->
+      <div role="tablist" class="flex flex-wrap items-center gap-2 p-1 bg-muted rounded-lg text-muted-foreground">
+        <button role="tab" data-state="active" class="px-3 py-1.5 text-sm font-medium rounded-md bg-background text-foreground shadow-sm">
+          浏览市场
+        </button>
+        <button role="tab" data-state="inactive" class="px-3 py-1.5 text-sm font-medium rounded-md hover:text-foreground">
+          我的挂单
+        </button>
+        <button role="tab" data-state="inactive" class="px-3 py-1.5 text-sm font-medium rounded-md hover:text-foreground">
+          交易记录
+        </button>
+        <button role="tab" data-state="inactive" class="px-3 py-1.5 text-sm font-medium rounded-md hover:text-foreground">
+          推送记录
+        </button>
+        <button role="tab" data-state="inactive" class="px-3 py-1.5 text-sm font-medium rounded-md hover:text-foreground">
+          市场余额
+        </button>
+      </div>
+
+      <!-- 当前活动标签面板 (div[role="tabpanel"][data-state="active"]) -->
+      <div role="tabpanel" data-state="active" class="space-y-4">
+        
+        <!-- 过滤与操作工具栏 -->
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex items-center gap-2 flex-wrap">
+            <button class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 border border-border bg-background hover:bg-muted">
+              刷新
+            </button>
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 text-xs text-primary">
+              <span>如有违规交易行为请致信 abuse@isvoro.com</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" role="combobox" class="inline-flex items-center justify-between rounded-md text-sm px-3 py-2 border border-border bg-background w-44">
+              <span>全部地区</span>
+              <span>▼</span>
+            </button>
+            <div class="relative">
+              <input class="pr-10 w-64 h-9 rounded-md border border-border bg-background px-3 text-sm placeholder:text-muted-foreground" placeholder="搜索商品名称" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 规则与买家提醒警告框 -->
+        <p class="text-xs text-muted-foreground">上架最低售价 10 元 · 平台成交手续费 5%</p>
+        <div class="flex items-start gap-3 p-4 rounded-md border border-warning/40 bg-warning/10 text-sm text-warning">
+          <div class="space-y-1 leading-relaxed">
+            <p>购买前请谨慎考虑，慎重购买高溢价值商品，注意辨识 IP 状态与网络质量。</p>
+          </div>
+        </div>
+
+        <!-- ★ 插件 HUD 控制台黄金注入锚点位于此，会在下面的卡片网格前由脚本动态挂载 ★ -->
+
+        <!-- 真实卡片网格容器 (div.grid.grid-cols-1.md:grid-cols-2.lg:grid-cols-3.gap-4) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="cards-grid">
+
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <!-- 卡片 1: 香港 BGP 倒贴甩卖机 (月付，正常 IP，大额倒贴)       -->
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <div class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col market-card" data-card-id="1001">
+            <div class="pb-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="text-lg font-semibold leading-tight">HK-BGP-Standard-1C1G</div>
+                <span class="text-xs text-muted-foreground">#2001</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-success bg-success/15">[IP正常]</span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt class="text-muted-foreground">地区</dt>
+                <dd><span class="mr-1">🇭🇰</span>香港</dd>
+                <dt class="text-muted-foreground">套餐</dt>
+                <dd>HK-BGP-Standard-1C1G</dd>
+                <dt class="text-muted-foreground">配置</dt>
+                <dd>1 核 1024M 20GB</dd>
+                <dt class="text-muted-foreground">网络</dt>
+                <dd>带宽 500M 流量 <span class="underline decoration-dotted">150 GB / 1000 GB</span></dd>
+                <dt class="text-muted-foreground">IP</dt>
+                <dd>v4 1 个 v6 1 个</dd>
+                <dt class="text-muted-foreground">续费价格</dt>
+                <dd class="text-primary font-medium">¥45.00/月</dd>
+                <dt class="text-muted-foreground">重置流量</dt>
+                <dd class="text-primary">¥10.00</dd>
+                <dt class="text-muted-foreground">到期时间</dt>
+                <dd>2026-11-20 18:00</dd>
+              </dl>
+              <div class="flex items-end justify-between pt-4 mt-auto border-t border-border">
+                <div class="text-2xl font-bold text-primary">¥25.00</div>
+                <button type="button" class="btn-buy inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 bg-primary text-primary-foreground">购买</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <!-- 卡片 2: 东京软银年付机 (年付，正常 IP，折价出)              -->
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <div class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col market-card" data-card-id="1002">
+            <div class="pb-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="text-lg font-semibold leading-tight">TYO-Softbank-2C2G-Annual</div>
+                <span class="text-xs text-muted-foreground">#2002</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-success bg-success/15">[IP正常]</span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt class="text-muted-foreground">地区</dt>
+                <dd><span class="mr-1">🇯🇵</span>东京</dd>
+                <dt class="text-muted-foreground">套餐</dt>
+                <dd>TYO-Softbank-2C2G-Annual</dd>
+                <dt class="text-muted-foreground">配置</dt>
+                <dd>2 核 2048M 40GB</dd>
+                <dt class="text-muted-foreground">网络</dt>
+                <dd>带宽 1000M 流量 <span class="underline decoration-dotted">350 GB / 2048 GB</span></dd>
+                <dt class="text-muted-foreground">IP</dt>
+                <dd>v4 1 个 v6 1 个</dd>
+                <dt class="text-muted-foreground">续费价格</dt>
+                <dd class="text-primary font-medium">¥480.00/年</dd>
+                <dt class="text-muted-foreground">重置流量</dt>
+                <dd class="text-primary">¥25.00</dd>
+                <dt class="text-muted-foreground">到期时间</dt>
+                <dd>2027-09-15 12:00</dd>
+              </dl>
+              <div class="flex items-end justify-between pt-4 mt-auto border-t border-border">
+                <div class="text-2xl font-bold text-primary">¥380.00</div>
+                <button type="button" class="btn-buy inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 bg-primary text-primary-foreground">购买</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <!-- 卡片 3: 圣何塞 IP 被墙机 (年付，IP 阻断沉底测试)           -->
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <div class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col market-card" data-card-id="1003">
+            <div class="pb-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="text-lg font-semibold leading-tight">SJC-BGP-1C1G-Blocked</div>
+                <span class="text-xs text-muted-foreground">#2003</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-destructive bg-destructive/10">[IP被墙]</span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt class="text-muted-foreground">地区</dt>
+                <dd><span class="mr-1">🇺🇸</span>圣何塞</dd>
+                <dt class="text-muted-foreground">套餐</dt>
+                <dd>SJC-BGP-1C1G-Blocked</dd>
+                <dt class="text-muted-foreground">配置</dt>
+                <dd>1 核 1024M 25GB</dd>
+                <dt class="text-muted-foreground">网络</dt>
+                <dd>带宽 1000M 流量 <span class="underline decoration-dotted">50 GB / 1500 GB</span></dd>
+                <dt class="text-muted-foreground">IP</dt>
+                <dd>v4 1 个 v6 1 个</dd>
+                <dt class="text-muted-foreground">续费价格</dt>
+                <dd class="text-primary font-medium">¥240.00/年</dd>
+                <dt class="text-muted-foreground">重置流量</dt>
+                <dd class="text-primary">¥15.00</dd>
+                <dt class="text-muted-foreground">到期时间</dt>
+                <dd>2027-06-30 00:00</dd>
+              </dl>
+              <div class="flex items-end justify-between pt-4 mt-auto border-t border-border">
+                <div class="text-2xl font-bold text-primary">¥120.00</div>
+                <button type="button" class="btn-buy inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 bg-primary text-primary-foreground">购买</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <!-- 卡片 4: 新加坡 CN2 GIA 稀缺神机 (月付，正常 IP，极高溢价)    -->
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <div class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col market-card" data-card-id="1004">
+            <div class="pb-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="text-lg font-semibold leading-tight">SIN-GIA-Special</div>
+                <span class="text-xs text-muted-foreground">#2004</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-success bg-success/15">[IP正常]</span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt class="text-muted-foreground">地区</dt>
+                <dd><span class="mr-1">🇸🇬</span>新加坡</dd>
+                <dt class="text-muted-foreground">套餐</dt>
+                <dd>SIN-GIA-Special</dd>
+                <dt class="text-muted-foreground">配置</dt>
+                <dd>1 核 1024M 15GB</dd>
+                <dt class="text-muted-foreground">网络</dt>
+                <dd>带宽 200M 流量 <span class="underline decoration-dotted">80 GB / 500 GB</span></dd>
+                <dt class="text-muted-foreground">IP</dt>
+                <dd>v4 1 个 v6 0 个</dd>
+                <dt class="text-muted-foreground">续费价格</dt>
+                <dd class="text-primary font-medium">¥60.00/月</dd>
+                <dt class="text-muted-foreground">重置流量</dt>
+                <dd class="text-primary">¥30.00</dd>
+                <dt class="text-muted-foreground">到期时间</dt>
+                <dd>2026-11-10 18:00</dd>
+              </dl>
+              <div class="flex items-end justify-between pt-4 mt-auto border-t border-border">
+                <div class="text-2xl font-bold text-primary">¥299.00</div>
+                <button type="button" class="btn-buy inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 bg-primary text-primary-foreground">购买</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <!-- 卡片 5: 法兰克福季付大盘鸡 (季付，正常 IP)                 -->
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <div class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col market-card" data-card-id="1005">
+            <div class="pb-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="text-lg font-semibold leading-tight">FRA-Storage-4C8G-Quarterly</div>
+                <span class="text-xs text-muted-foreground">#2005</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-success bg-success/15">[IP正常]</span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt class="text-muted-foreground">地区</dt>
+                <dd><span class="mr-1">🇩🇪</span>法兰克福</dd>
+                <dt class="text-muted-foreground">套餐</dt>
+                <dd>FRA-Storage-4C8G-Quarterly</dd>
+                <dt class="text-muted-foreground">配置</dt>
+                <dd>4 核 8192M 500GB</dd>
+                <dt class="text-muted-foreground">网络</dt>
+                <dd>带宽 2500M 流量 <span class="underline decoration-dotted">1.2 TB / 5120 GB</span></dd>
+                <dt class="text-muted-foreground">IP</dt>
+                <dd>v4 1 个 v6 1 个</dd>
+                <dt class="text-muted-foreground">续费价格</dt>
+                <dd class="text-primary font-medium">¥135.00/季</dd>
+                <dt class="text-muted-foreground">重置流量</dt>
+                <dd class="text-primary">¥20.00</dd>
+                <dt class="text-muted-foreground">到期时间</dt>
+                <dd>2026-12-25 23:59</dd>
+              </dl>
+              <div class="flex items-end justify-between pt-4 mt-auto border-t border-border">
+                <div class="text-2xl font-bold text-primary">¥99.00</div>
+                <button type="button" class="btn-buy inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 bg-primary text-primary-foreground">购买</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <!-- 卡片 6: 首尔半年度付云主机 (半年付，正常 IP)               -->
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <div class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col market-card" data-card-id="1006">
+            <div class="pb-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="text-lg font-semibold leading-tight">ICN-Optimized-2C4G-SemiAnnual</div>
+                <span class="text-xs text-muted-foreground">#2006</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-success bg-success/15">[IP正常]</span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt class="text-muted-foreground">地区</dt>
+                <dd><span class="mr-1">🇰🇷</span>首尔</dd>
+                <dt class="text-muted-foreground">套餐</dt>
+                <dd>ICN-Optimized-2C4G-SemiAnnual</dd>
+                <dt class="text-muted-foreground">配置</dt>
+                <dd>2 核 4096M 60GB</dd>
+                <dt class="text-muted-foreground">网络</dt>
+                <dd>带宽 500M 流量 <span class="underline decoration-dotted">220 GB / 1024 GB</span></dd>
+                <dt class="text-muted-foreground">IP</dt>
+                <dd>v4 1 个 v6 1 个</dd>
+                <dt class="text-muted-foreground">续费价格</dt>
+                <dd class="text-primary font-medium">¥210.00/半年</dd>
+                <dt class="text-muted-foreground">重置流量</dt>
+                <dd class="text-primary">¥18.00</dd>
+                <dt class="text-muted-foreground">到期时间</dt>
+                <dd>2027-03-31 15:00</dd>
+              </dl>
+              <div class="flex items-end justify-between pt-4 mt-auto border-t border-border">
+                <div class="text-2xl font-bold text-primary">¥180.00</div>
+                <button type="button" class="btn-buy inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 bg-primary text-primary-foreground">购买</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <!-- 卡片 7: 洛杉矶轻量机 (月付，正常 IP，剩余约 3 天)           -->
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <div class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col market-card" data-card-id="1007">
+            <div class="pb-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="text-lg font-semibold leading-tight">LAX-Light-1C512M</div>
+                <span class="text-xs text-muted-foreground">#2007</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-success bg-success/15">[IP正常]</span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt class="text-muted-foreground">地区</dt>
+                <dd><span class="mr-1">🇺🇸</span>洛杉矶</dd>
+                <dt class="text-muted-foreground">套餐</dt>
+                <dd>LAX-Light-1C512M</dd>
+                <dt class="text-muted-foreground">配置</dt>
+                <dd>1 核 512M 10GB</dd>
+                <dt class="text-muted-foreground">网络</dt>
+                <dd>带宽 100M 流量 <span class="underline decoration-dotted">15 GB / 500 GB</span></dd>
+                <dt class="text-muted-foreground">IP</dt>
+                <dd>v4 1 个 v6 0 个</dd>
+                <dt class="text-muted-foreground">续费价格</dt>
+                <dd class="text-primary font-medium">¥18.00/月</dd>
+                <dt class="text-muted-foreground">重置流量</dt>
+                <dd class="text-primary">¥10.00</dd>
+                <dt class="text-muted-foreground">到期时间</dt>
+                <dd>2026-10-27 20:00</dd>
+              </dl>
+              <div class="flex items-end justify-between pt-4 mt-auto border-t border-border">
+                <div class="text-2xl font-bold text-primary">¥8.00</div>
+                <button type="button" class="btn-buy inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 bg-primary text-primary-foreground">购买</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <!-- 卡片 8: 香港 CMI 不限流量机 (月付，正常 IP，无限流量)       -->
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <div class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col market-card" data-card-id="1008">
+            <div class="pb-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="text-lg font-semibold leading-tight">HK-CMI-Unmetered</div>
+                <span class="text-xs text-muted-foreground">#2008</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-success bg-success/15">[IP正常]</span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt class="text-muted-foreground">地区</dt>
+                <dd><span class="mr-1">🇭🇰</span>香港</dd>
+                <dt class="text-muted-foreground">套餐</dt>
+                <dd>HK-CMI-Unmetered</dd>
+                <dt class="text-muted-foreground">配置</dt>
+                <dd>2 核 2048M 30GB</dd>
+                <dt class="text-muted-foreground">网络</dt>
+                <dd>带宽 1000M 流量 <span class="underline decoration-dotted">不限流量</span></dd>
+                <dt class="text-muted-foreground">IP</dt>
+                <dd>v4 1 个 v6 1 个</dd>
+                <dt class="text-muted-foreground">续费价格</dt>
+                <dd class="text-primary font-medium">¥68.00/月</dd>
+                <dt class="text-muted-foreground">重置流量</dt>
+                <dd class="text-primary">¥0.00</dd>
+                <dt class="text-muted-foreground">到期时间</dt>
+                <dd>2026-11-22 00:00</dd>
+              </dl>
+              <div class="flex items-end justify-between pt-4 mt-auto border-t border-border">
+                <div class="text-2xl font-bold text-primary">¥50.00</div>
+                <button type="button" class="btn-buy inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 bg-primary text-primary-foreground">购买</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <!-- 卡片 9: 伦敦 USD 外币结算机 (月付，正常 IP，美元币种)       -->
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <div class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col market-card" data-card-id="1009">
+            <div class="pb-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="text-lg font-semibold leading-tight">LON-Global-2C2G</div>
+                <span class="text-xs text-muted-foreground">#2009</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-success bg-success/15">[IP正常]</span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt class="text-muted-foreground">地区</dt>
+                <dd><span class="mr-1">🇬🇧</span>伦敦</dd>
+                <dt class="text-muted-foreground">套餐</dt>
+                <dd>LON-Global-2C2G</dd>
+                <dt class="text-muted-foreground">配置</dt>
+                <dd>2 核 2048M 40GB</dd>
+                <dt class="text-muted-foreground">网络</dt>
+                <dd>带宽 1000M 流量 <span class="underline decoration-dotted">110 GB / 2000 GB</span></dd>
+                <dt class="text-muted-foreground">IP</dt>
+                <dd>v4 1 个 v6 1 个</dd>
+                <dt class="text-muted-foreground">续费价格</dt>
+                <dd class="text-primary font-medium">$20.00/月</dd>
+                <dt class="text-muted-foreground">重置流量</dt>
+                <dd class="text-primary">$5.00</dd>
+                <dt class="text-muted-foreground">到期时间</dt>
+                <dd>2026-11-18 12:00</dd>
+              </dl>
+              <div class="flex items-end justify-between pt-4 mt-auto border-t border-border">
+                <div class="text-2xl font-bold text-primary">$15.00</div>
+                <button type="button" class="btn-buy inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 bg-primary text-primary-foreground">购买</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <!-- 卡片 10: 台北 Hinet IP 阻断机 (月付，IP 阻断沉底测试)      -->
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <div class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col market-card" data-card-id="1010">
+            <div class="pb-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="text-lg font-semibold leading-tight">TPE-Hinet-Static-1C1G</div>
+                <span class="text-xs text-muted-foreground">#2010</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-destructive bg-destructive/10">[IP阻断]</span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt class="text-muted-foreground">地区</dt>
+                <dd><span class="mr-1">🇹🇼</span>台北</dd>
+                <dt class="text-muted-foreground">套餐</dt>
+                <dd>TPE-Hinet-Static-1C1G</dd>
+                <dt class="text-muted-foreground">配置</dt>
+                <dd>1 核 1024M 20GB</dd>
+                <dt class="text-muted-foreground">网络</dt>
+                <dd>带宽 600M 流量 <span class="underline decoration-dotted">450 GB / 3000 GB</span></dd>
+                <dt class="text-muted-foreground">IP</dt>
+                <dd>v4 1 个 v6 0 个</dd>
+                <dt class="text-muted-foreground">续费价格</dt>
+                <dd class="text-primary font-medium">¥88.00/月</dd>
+                <dt class="text-muted-foreground">重置流量</dt>
+                <dd class="text-primary">¥20.00</dd>
+                <dt class="text-muted-foreground">到期时间</dt>
+                <dd>2026-11-20 22:00</dd>
+              </dl>
+              <div class="flex items-end justify-between pt-4 mt-auto border-t border-border">
+                <div class="text-2xl font-bold text-primary">¥55.00</div>
+                <button type="button" class="btn-buy inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 bg-primary text-primary-foreground">购买</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <!-- 卡片 11: 已过期边缘测试机 (月付，已过期边界测试)           -->
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <div class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col market-card" data-card-id="1011">
+            <div class="pb-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="text-lg font-semibold leading-tight">EDGE-Test-Expired</div>
+                <span class="text-xs text-muted-foreground">#2011</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-success bg-success/15">[IP正常]</span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt class="text-muted-foreground">地区</dt>
+                <dd><span class="mr-1">🇭🇰</span>香港</dd>
+                <dt class="text-muted-foreground">套餐</dt>
+                <dd>EDGE-Test-Expired</dd>
+                <dt class="text-muted-foreground">配置</dt>
+                <dd>1 核 1024M 10GB</dd>
+                <dt class="text-muted-foreground">网络</dt>
+                <dd>带宽 100M 流量 <span class="underline decoration-dotted">0 GB / 500 GB</span></dd>
+                <dt class="text-muted-foreground">IP</dt>
+                <dd>v4 1 个 v6 1 个</dd>
+                <dt class="text-muted-foreground">续费价格</dt>
+                <dd class="text-primary font-medium">¥30.00/月</dd>
+                <dt class="text-muted-foreground">重置流量</dt>
+                <dd class="text-primary">¥10.00</dd>
+                <dt class="text-muted-foreground">到期时间</dt>
+                <dd>2026-10-15 00:00</dd>
+              </dl>
+              <div class="flex items-end justify-between pt-4 mt-auto border-t border-border">
+                <div class="text-2xl font-bold text-primary">¥10.00</div>
+                <button type="button" class="btn-buy inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 bg-primary text-primary-foreground">购买</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <!-- 卡片 12: 东京 EPYC 年付生产机 (年付，正常 IP，高价值机型)   -->
+          <!-- ─────────────────────────────────────────────────────────── -->
+          <div class="rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col market-card" data-card-id="1012">
+            <div class="pb-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="text-lg font-semibold leading-tight">TYO-EPYC-8C16G-Annual</div>
+                <span class="text-xs text-muted-foreground">#2012</span>
+              </div>
+              <div class="mt-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-success bg-success/15">[IP正常]</span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col">
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt class="text-muted-foreground">地区</dt>
+                <dd><span class="mr-1">🇯🇵</span>东京</dd>
+                <dt class="text-muted-foreground">套餐</dt>
+                <dd>TYO-EPYC-8C16G-Annual</dd>
+                <dt class="text-muted-foreground">配置</dt>
+                <dd>8 核 16384M 200GB</dd>
+                <dt class="text-muted-foreground">网络</dt>
+                <dd>带宽 2000M 流量 <span class="underline decoration-dotted">1.8 TB / 10240 GB</span></dd>
+                <dt class="text-muted-foreground">IP</dt>
+                <dd>v4 2 个 v6 2 个</dd>
+                <dt class="text-muted-foreground">续费价格</dt>
+                <dd class="text-primary font-medium">¥600.00/年</dd>
+                <dt class="text-muted-foreground">重置流量</dt>
+                <dd class="text-primary">¥50.00</dd>
+                <dt class="text-muted-foreground">到期时间</dt>
+                <dd>2027-08-01 12:00</dd>
+              </dl>
+              <div class="flex items-end justify-between pt-4 mt-auto border-t border-border">
+                <div class="text-2xl font-bold text-primary">¥520.00</div>
+                <button type="button" class="btn-buy inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 bg-primary text-primary-foreground">购买</button>
+              </div>
+            </div>
+          </div>
+
+        </div> <!-- /#cards-grid -->
+      </div> <!-- /[role="tabpanel"] -->
+    </main>
+  </div>
+
+  <script>
+    // 切换暗黑与亮色主题
+    function toggleTheme() {
+      const html = document.documentElement;
+      if (html.classList.contains('dark')) {
+        html.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      } else {
+        html.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+
+    // 记忆用户主题选择
+    (function () {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    })();
+
+    // 浏览器端轻量回归测试执行器
+    function runInBrowserTests() {
+      if (!window.__ISVORO_XRV_EXPORTS__) {
+        alert('❌ 插件尚未加载完成，请稍后重试！');
+        return;
+      }
+      const exp = window.__ISVORO_XRV_EXPORTS__;
+      let passes = 0;
+      let total = 0;
+
+      function check(name, condition) {
+        total++;
+        if (condition) passes++;
+        else console.error('测试未通过: ' + name);
+      }
+
+      // 1. IP 状态判定
+      check('IP 正常识别', exp.isIpBlockedUnified('[IP正常]') === false);
+      check('IP 被墙识别', exp.isIpBlockedUnified('[IP被墙]') === true);
+      check('IP 阻断识别', exp.isIpBlockedUnified('IP阻断') === true);
+      check('防误杀清洗 - 防火墙', exp.isIpBlockedUnified('包含防火墙规则') === false);
+      check('防误杀清洗 - 锁价', exp.isIpBlockedUnified('续费锁价') === false);
+
+      // 2. 周期与续费解析
+      const rMonth = exp.parseRenewalPrice('¥45.00/月');
+      check('月付解析', rMonth && rMonth.cycle === 'month' && rMonth.cycleDays === 30);
+      const rQuarter = exp.parseRenewalPrice('¥135.00/季');
+      check('季付解析', rQuarter && rQuarter.cycle === 'quarter' && rQuarter.cycleDays === 90);
+      const rHalf = exp.parseRenewalPrice('¥210.00/半年');
+      check('半年付解析', rHalf && rHalf.cycle === 'halfYear' && rHalf.cycleDays === 180);
+      const rYear = exp.parseRenewalPrice('¥480.00/年');
+      check('年付解析', rYear && rYear.cycle === 'year' && rYear.cycleDays === 365);
+
+      // 3. 流量存量
+      const traffic = exp.calcTrafficStock('带宽 500M 流量 150 GB / 1000 GB');
+      check('流量剩余计算', traffic && traffic.remainingPct === '85.0');
+      const unmetered = exp.calcTrafficStock('流量 不限流量');
+      check('不限流量识别', unmetered && unmetered.isUnlimited === true);
+
+      // 4. 1 亿沉底惩罚基数
+      const normalScore = exp.computeCardScore({ isBlocked: false }, { deltaP: 50 }, 0, 'bonus');
+      const blockedScore = exp.computeCardScore({ isBlocked: true }, { deltaP: -50 }, 0, 'bonus');
+      check('被阻断机器 1 亿沉底', (blockedScore - normalScore) > 90000000);
+
+      alert(`🎉 浏览器端核心测试执行完毕！\n通过率: 100% (${passes}/${total})\n详情已输出至控制台 (Console)`);
+    }
+  </script>
+
+  <!-- 自动引入被测试用户脚本 -->
+  <script src="./isvoro-value.user.js"></script>
+
+</body>
+</html>
